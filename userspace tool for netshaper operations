@@ -1,0 +1,52 @@
+Introduction
+
+The Microsoft Azure Network Adapter (MANA) driver introduced hardware-level bandwidth shaping through net shaper operations,
+enabling fine-grained control over network throughput directly on the NIC. However, until now, users lacked a dedicated 
+user space tool to configure and manage these shaping parameters efficiently. To address this gap, a new net shaper command 
+has been integrated into the iproute2 suite. This enhancement allows users to set, query, and remove bandwidth shaping configurations
+using familiar iproute2 syntax, streamlining network management for MANA NICs. 
+
+Commands
+
+Set Bandwidth Limit:
+$ netshaper set dev enP30832s1 handle scope netdev id 1 speed 10gbit
+
+Get shaper details:
+$ netshaper show dev enp30832s1 handle scope netdev id 1
+speed: 10000 mbps
+dev: enP30832s1
+
+Delete Shaper:
+$  netshaper delete dev enP30832s1 handle scope netdev id 1
+
+Constraints
+
+•	Minimum Bandwidth: 100 Mbps
+•	Granularity: Must be a multiple of 100 Mbps
+
+$ netshaper set dev enp30832s1 handle scope netdev id 1 speed 550mbit
+Error: mana: Please use multiples of 100Mbps for bandwidth.
+Kernel command failed: -1
+
+•	H/W Setting: The Hardware setting is per VF i.e. in multi-vport scenario the latest speed setting will be used for all the vports.
+•	Scope: Only netdev scope is supported
+$ netshaper set dev enp30832s1 handle scope queue id 1 speed 500mbit
+Error: mana: net shaper scope should be netdev.
+Kernel command failed: -1
+
+•	Single Shaper: Only one shaper per interface is allowed
+$ netshaper set dev enp30832s1 handle scope netdev id 2 speed 500mbit
+Error: mana: Cannot create multiple shapers.
+Kernel command failed: -1
+
+NOTE:
+1.	This feature is not supported by all hardware having MANA NIC.
+2.	Only these three operations of netshapers are implemented currently specifically for netdev scope. The other operations will be integrated based on requirement.
+3.	The user can mention network device name instead of interface index.
+4.	The speed can be mentioned in kbit/mbit/gbit instead of having long string of zeroes when using bps in ynl tool.
+
+Conclusion
+
+A standalone command simplifies netshaper operations for users by eliminating previous constraints
+such as the frequent changes in netdevice ifindex and the limitation of using only bps for rate settings 
+that were present when using the YNL tool.
