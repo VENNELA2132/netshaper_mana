@@ -9,33 +9,33 @@ using familiar iproute2 syntax, streamlining network management for MANA NICs.
 Commands
 
 Set Bandwidth Limit:
-$ netshaper set dev enP30832s1 handle scope netdev id 1 speed 10gbit
+$ netshaper set dev <interface> handle scope netdev id 1 bw-max 10gbit
 
 Get shaper details:
-$ netshaper show dev enp30832s1 handle scope netdev id 1
-speed: 10000 mbps
-dev: enP30832s1
+$ netshaper show dev <interface> handle scope netdev id 1
+bw-max: 10000 mbps
+dev: <interface>
 
 Delete Shaper:
-$  netshaper delete dev enP30832s1 handle scope netdev id 1
+$  netshaper delete dev <interface> handle scope netdev id 1
 
 Constraints
 
 •	Minimum Bandwidth: 100 Mbps
 •	Granularity: Must be a multiple of 100 Mbps
 
-$ netshaper set dev enp30832s1 handle scope netdev id 1 speed 550mbit
+$ netshaper set dev <interface> handle scope netdev id 1 bw-max 550mbit
 Error: mana: Please use multiples of 100Mbps for bandwidth.
 Kernel command failed: -1
 
 •	H/W Setting: The Hardware setting is per VF i.e. in multi-vport scenario the latest speed setting will be used for all the vports.
 •	Scope: Only netdev scope is supported
-$ netshaper set dev enp30832s1 handle scope queue id 1 speed 500mbit
+$ netshaper set dev <interface> handle scope queue id 1 bw-max 500mbit
 Error: mana: net shaper scope should be netdev.
 Kernel command failed: -1
 
 •	Single Shaper: Only one shaper per interface is allowed
-$ netshaper set dev enp30832s1 handle scope netdev id 2 speed 500mbit
+$ netshaper set dev <interface> handle scope netdev id 2 bw-max 500mbit
 Error: mana: Cannot create multiple shapers.
 Kernel command failed: -1
 
@@ -49,4 +49,6 @@ Conclusion
 
 A standalone command simplifies netshaper operations for users by eliminating previous constraints
 such as the frequent changes in netdevice ifindex and the limitation of using only bps for rate settings 
-that were present when using the YNL tool.
+that were present when using the YNL tool. Another limitation we encountered with the YNL tool was the 
+requirement to clone the latest Linux source tree in order to use it. In contrast, this iproute2 
+command can be executed directly in user space, eliminating the need to clone the Linux source code.
