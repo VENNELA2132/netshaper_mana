@@ -1,0 +1,91 @@
+Introduction
+
+The net-shaper ops feature in the MANA (Microsoft Azure Network Adapter) driver introduces hardware-level bandwidth rate limiting capabilities.
+This enhancement allows fine-grained control over network throughput by configuring shaping parameters directly on the NIC. Previously, users 
+had no direct mechanism to control bandwidth shaping on this device. This allows efficient bandwidth management for MANA NICs.
+This capability is implemented via the net_shaper_ops interface, which interacts with the MANA driver through hardware control (HWC) commands. 
+The implementation ensures that shaping configurations are validated, applied, and reverted safely in case of errors.
+
+Use Cases
+
+1.	Bandwidth Clamping: Enables setting a maximum bandwidth limit per virtual function (VF), ensuring that traffic does not exceed defined thresholds.
+2.	Dynamic Reconfiguration: Allows runtime updates to shaping parameters without requiring driver reloads or VM reboots.
+3.	Error Recovery: In case of failure during shaping operations, the driver restores the previous configuration.
+4.	Debugging and Visibility: Integration with debugfs provides visibility into current shaping configurations, especially useful after VM reboots.
+
+Sending Commands from User Space
+
+The shaping operations are performed using the pyynl CLI tool, which interfaces with the kernel via Netlink.
+Below are the key commands that have to be run as root user in latest linux kernel source tree:
+
+Set Bandwidth Limit
+./tools/net/ynl/pyynl/cli.py \
+  --spec Documentation/netlink/specs/net_shaper.yaml \
+  --do set \
+  --json '{"ifindex":3, "handle":{"scope": "netdev", "id":1 }, "bw-max": 200000000 }'
+
+Get Shaper Details
+./tools/net/ynl/pyynl/cli.py \
+  --spec Documentation/netlink/specs/net_shaper.yaml \
+  --do get \
+  --json '{"ifindex":3, "handle":{"scope": "netdev", "id":1 }}'
+
+Delete Shaper
+./tools/net/ynl/pyynl/cli.py \
+  --spec Documentation/netlink/specs/net_shaper.yaml \
+  --do delete \
+  --json '{"ifindex":3, "handle":{"scope": "netdev", "id":1 }}'
+
+Print the current configured speed (in Mbps) from debugfs
+# cat /sys/kernel/debug/mana/1/vport0/current_speed
+> 200
+
+Print the maximum speed supported by the VM's SKU
+# sudo ethtool enP30832s1
+>Settings for enP30832s1:
+>        Supported ports: [  ]
+>        Supported link modes:   Not reported
+>        Supported pause frame use: No
+>        Supports auto-negotiation: No
+>        Supported FEC modes: Not reported
+>        Advertised link modes:  Not reported
+>        Advertised pause frame use: No
+>        Advertised auto-negotiation: No
+>        Advertised FEC modes: Not reported
+>        Speed: 16000Mb/s
+>        Duplex: Full
+>        Auto-negotiation: off
+>        Port: Other
+>        PHYAD: 0
+>        Transceiver: internal
+>        Link detected: yes
+
+NOTE:
+1.	Run these commands only after QoS is configured in hardware.
+Use ethtool to check—if speed shows as "unknown", QoS isn’t ready, and set speed will fail with -EINVAL. QoS setup time is uncertain.
+2.	Make sure to enter the correct interface index (ifindex), since reloading for MANA module changes its index. It can be obtained from  #ip a
+3.	The speed should be entered in bps (bits per second)
+4.	Once the shaper is deleted, the speed will be reset to max speed supported by the SKU.
+5.	On VM reboot, the hardware retains the configured speed, but shaper settings are lost, causing the get operation to fail.
+6.	To inspect current settings, use debugfs. This helps decide whether to reuse or update the configuration.
+
+Constraints and Error Handling
+
+•	Minimum Bandwidth: 100 Mbps
+•	Granularity: Must be a multiple of 100 Mbps
+•	H/W Setting: The Hardware setting is per VF i.e. in multi-vport scenario the latest speed setting will be used for all the vports.
+•	Scope: Only netdev scope is supported
+•	Single Shaper: Only one shaper per interface is allowed
+•	Error Recovery:
+o	On failure to set: previous speed and handle are restored
+o	On failure to delete: current configuration is retained
+
+Conclusion
+The integration of net-shaper ops into the MANA driver provides a robust mechanism for bandwidth control at the NIC level.
+It supports dynamic configuration, error resilience, and user-space visibility. While the interface is powerful, it requires
+careful handling of parameters and awareness of hardware support limitations. Future enhancements may include better integration 
+with user-friendly tooling and broader hardware compatibility.
+
+References
+https://dri.freedesktop.org/docs/drm/networking/netlink_spec/net_shaper.html
+https://lore.kernel.org/lkml/1750144656-2021-1-git-send-email-ernis@linux.microsoft.com/
