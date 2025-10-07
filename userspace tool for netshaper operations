@@ -9,15 +9,16 @@ using familiar iproute2 syntax, streamlining network management for MANA NICs.
 Commands
 
 Set Bandwidth Limit:
-$ netshaper set dev <interface> handle scope netdev id 1 bw-max 10gbit
+$ netshaper set dev <interface> handle scope netdev bw-max 10gbit
 
 Get shaper details:
-$ netshaper show dev <interface> handle scope netdev id 1
+$ netshaper show dev <interface> handle scope netdev
+scope: netdev
 bw-max: 10000 mbps
 dev: <interface>
 
 Delete Shaper:
-$  netshaper delete dev <interface> handle scope netdev id 1
+$  netshaper delete dev <interface> handle scope netdev
 
 Constraints
 
@@ -35,6 +36,7 @@ Error: mana: net shaper scope should be netdev.
 Kernel command failed: -1
 
 •	Single Shaper: Only one shaper per interface is allowed
+$ netshaper set dev <interface> handle scope netdev id 1 bw-max 10gbit
 $ netshaper set dev <interface> handle scope netdev id 2 bw-max 500mbit
 Error: mana: Cannot create multiple shapers.
 Kernel command failed: -1
