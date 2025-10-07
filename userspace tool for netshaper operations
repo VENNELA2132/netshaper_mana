@@ -25,13 +25,13 @@ Constraints
 •	Minimum Bandwidth: 100 Mbps
 •	Granularity: Must be a multiple of 100 Mbps
 
-$ netshaper set dev <interface> handle scope netdev id 1 bw-max 550mbit
+$ netshaper set dev <interface> handle scope netdev bw-max 550mbit
 Error: mana: Please use multiples of 100Mbps for bandwidth.
 Kernel command failed: -1
 
 •	H/W Setting: The Hardware setting is per VF i.e. in multi-vport scenario the latest speed setting will be used for all the vports.
 •	Scope: Only netdev scope is supported
-$ netshaper set dev <interface> handle scope queue id 1 bw-max 500mbit
+$ netshaper set dev <interface> handle scope queue bw-max 500mbit
 Error: mana: net shaper scope should be netdev.
 Kernel command failed: -1
 
